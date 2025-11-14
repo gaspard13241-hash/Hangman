@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00fff9;
+            --neon-pink: #ff00ea;
+            --neon-yellow: #fff700;
+            --neon-green: #39ff14;
+            --dark-bg: #0a0e27;
+            --darker-bg: #050816;
+            --card-bg: #1a1f3a;
+            --text-primary: #e0e6ff;
+            --text-dim: #8892b0;
+        }
+
+        .dark {
+            --neon-cyan: #00fff9;
+            --neon-pink: #ff00ea;
+            --neon-yellow: #fff700;
+            --neon-green: #39ff14;
+            --dark-bg: #0a0e27;
+            --darker-bg: #050816;
+            --card-bg: #1a1f3a;
+            --text-primary: #e0e6ff;
+            --text-dim: #8892b0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 249, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 234, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(57, 255, 20, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-family: 'VT323', monospace;
+            font-size: clamp(12px, 3vw, 20px);
+            line-height: 1.2;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+            white-space: pre;
+            margin-bottom: 30px;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 249, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(0, 255, 249, 0.03),
+                transparent
+            );
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        h1 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 20px;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            font-weight: 900;
+        }
+
+        h2 {
+            font-size: clamp(18px, 4vw, 28px);
+            margin-bottom: 30px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+            font-weight: 700;
+        }
+
+        .btn {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(14px, 3vw, 18px);
+            padding: 15px 40px;
+            margin: 10px;
+            border: 2px solid var(--neon-cyan);
+            background: transparent;
+            color: var(--neon-cyan);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 700;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            color: var(--darker-bg);
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-pink {
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+        }
+
+        .btn-pink::before {
+            background: var(--neon-pink);
+        }
+
+        .btn-pink:hover {
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        .btn-green {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-green::before {
+            background: var(--neon-green);
+        }
+
+        .btn-green:hover {
+            box-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .btn-yellow {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        .btn-yellow::before {
+            background: var(--neon-yellow);
+        }
+
+        .btn-yellow:hover {
+            box-shadow: 0 0 20px var(--neon-yellow);
+        }
+
+        .mode-logo {
+            font-family: 'VT323', monospace;
+            font-size: clamp(10px, 2.5vw, 16px);
+            line-height: 1.2;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            white-space: pre;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .game-area {
+            margin-top: 30px;
+        }
+
+        .hangman-display {
+            font-family: 'VT323', monospace;
+            font-size: clamp(16px, 3vw, 24px);
+            line-height: 1.2;
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+            white-space: pre;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--neon-pink);
+            overflow-x: auto;
+        }
+
+        .lives-counter {
+            font-size: clamp(18px, 4vw, 24px);
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px var(--neon-yellow);
+            margin: 20px 0;
+            font-weight: 700;
+        }
+
+        .word-display {
+            font-family: 'VT323', monospace;
+            font-size: clamp(32px, 6vw, 56px);
+            letter-spacing: 15px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px var(--neon-cyan);
+            margin: 30px 0;
+            min-height: 60px;
+        }
+
+        .guessed-letters {
+            font-size: clamp(14px, 3vw, 18px);
+            color: var(--text-dim);
+            margin: 20px 0;
+            min-height: 30px;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            gap: 8px;
+            margin-top: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .key {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(14px, 2.5vw, 18px);
+            padding: 12px;
+            border: 2px solid var(--neon-green);
+            background: transparent;
+            color: var(--neon-green);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .key:hover:not(:disabled) {
+            background: var(--neon-green);
+            color: var(--darker-bg);
+            box-shadow: 0 0 15px var(--neon-green);
+            transform: translateY(-2px);
+        }
+
+        .key:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: var(--text-dim);
+            color: var(--text-dim);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 3px solid var(--neon-pink);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 0 50px var(--neon-pink);
+            animation: scaleIn 0.3s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            font-size: clamp(24px, 6vw, 42px);
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            font-size: clamp(16px, 4vw, 24px);
+            margin: 20px 0;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 20px;
+            }
+
+            .keyboard {
+                gap: 5px;
+            }
+
+            .key {
+                padding: 10px 5px;
+                font-size: 14px;
+            }
+
+            .word-display {
+                letter-spacing: 8px;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="screen active">
+            <div class="card">
+                <div class="logo">██╗  ██╗ █████╗ ███╗   ██╗ ██████╗ ███╗   ███╗ █████╗ ███╗   ██╗
+██║  ██║██╔══██╗████╗  ██║██╔════╝ ████╗ ████║██╔══██╗████╗  ██║
+███████║███████║██╔██╗ ██║██║  ███╗██╔████╔██║███████║██╔██╗ ██║
+██╔══██║██╔══██║██║╚██╗██║██║   ██║██║╚██╔╝██║██╔══██║██║╚██╗██║
+██║  ██║██║  ██║██║ ╚████║╚██████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝</div>
+                <h1>Welcome to Hangman!</h1>
+                <h2>Do you want to play?</h2>
+                <button class="btn" onclick="startGame()"><span>Yes, Let's Play!</span></button>
+                <button class="btn btn-pink" onclick="exitGame()"><span>No, Thanks</span></button>
+            </div>
+        </div>
+
+        <!-- Mode Selection Screen -->
+        <div id="modeScreen" class="screen">
+            <div class="card">
+                <div class="logo">██╗  ██╗ █████╗ ███╗   ██╗ ██████╗ ███╗   ███╗ █████╗ ███╗   ██╗
+██║  ██║██╔══██╗████╗  ██║██╔════╝ ████╗ ████║██╔══██╗████╗  ██║
+███████║███████║██╔██╗ ██║██║  ███╗██╔████╔██║███████║██╔██╗ ██║
+██╔══██║██╔══██║██║╚██╗██║██║   ██║██║╚██╔╝██║██╔══██║██║╚██╗██║
+██║  ██║██║  ██║██║ ╚████║╚██████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║
+╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝</div>
+                <h1>Choose Your Game Mode</h1>
+                <button class="btn btn-green" onclick="selectMode('food')"><span>🍎 Food Mode</span></button>
+                <button class="btn btn-yellow" onclick="selectMode('animal')"><span>🦁 Animal Mode</span></button>
+                <button class="btn btn-pink" onclick="selectMode('miscellaneous')"><span>🎨 Miscellaneous Mode</span></button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <div class="card">
+                <div id="modeLogo" class="mode-logo"></div>
+                <div class="lives-counter" id="livesCounter">****************************6/6 LIVES LEFT****************************</div>
+                <div class="hangman-display" id="hangmanDisplay"></div>
+                <div class="word-display" id="wordDisplay">_ _ _ _ _</div>
+                <div class="guessed-letters" id="guessedLetters">You already used these letters: </div>
+                <div class="keyboard" id="keyboard"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win/Lose Modal -->
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <div id="modalArt" class="hangman-display"></div>
+            <p id="modalMessage"></p>
+            <button class="btn" onclick="playAgain()"><span>Play Again</span></button>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Word lists
+        const wordLists = {
+            food: [
+                "apple", "apricot", "banana", "blueberry", "blackberry", "cherry", "cranberry", "date",
+                "fig", "grape", "guava", "kiwi", "lemon", "lime", "mango", "melon", "nectarine", "orange",
+                "papaya", "pineapple", "peach", "pear", "plum", "pomegranate", "raspberry", "strawberry",
+                "tangerine", "watermelon", "artichoke", "asparagus", "avocado", "broccoli", "cabbage",
+                "carrot", "cauliflower", "celery", "cucumber", "eggplant", "garlic", "kale", "lettuce",
+                "mushroom", "onion", "pea", "pepper", "potato", "pumpkin", "radish", "spinach", "squash",
+                "tomato", "turnip", "zucchini", "barley", "bread", "cereal", "corn", "couscous", "flour",
+                "muesli", "oats", "pasta", "quinoa", "rice", "rye", "spaghetti", "toast", "wheat",
+                "bacon", "beef", "chicken", "duck", "ham", "lamb", "meatball", "pork", "sausage", "steak",
+                "turkey", "veal", "anchovy", "calamari", "crab", "cod", "fish", "haddock", "lobster",
+                "mussel", "prawn", "salmon", "sardine", "shrimp", "squid", "tuna", "butter", "cheese",
+                "cream", "eggs", "ghee", "kefir", "milk", "margarine", "yogurt", "almond", "cashew",
+                "chestnut", "hazelnut", "macadamia", "nut", "peanut", "pecan", "pistachio", "sesame",
+                "walnut", "seed", "basil", "chive", "cinnamon", "coriander", "cumin", "curry", "dill",
+                "ginger", "mint", "nutmeg", "oregano", "parsley", "rosemary", "saffron", "sage", "salt",
+                "thyme", "barbecue", "dressing", "ketchup", "mayonnaise", "mustard", "relish", "sauce",
+                "syrup", "vinegar", "vinaigrette", "biscuit", "brownie", "cake", "candy", "chocolate",
+                "cookie", "cupcake", "donut", "honey", "jam", "jelly", "lollipop", "muffin", "pie",
+                "sorbet", "sweet", "soup", "stew", "broth", "sushi", "hummus", "taco", "pizza", "nacho",
+                "pretzel", "wrap", "bagel", "dumpling", "fritter"
+            ],
+            animal: [
+                "lion", "tiger", "elephant", "giraffe", "zebra", "kangaroo", "panda", "bear", "rabbit",
+                "fox", "wolf", "deer", "eagle", "hawk", "sparrow", "dolphin", "whale", "shark", "octopus",
+                "seal", "penguin", "flamingo", "peacock", "ostrich", "crocodile", "alligator", "snake",
+                "lizard", "frog", "tortoise", "hamster", "mouse", "rat", "bat", "squirrel", "hedgehog",
+                "chipmunk", "donkey", "horse", "cow", "sheep", "goat", "chicken", "duck", "turkey",
+                "parrot", "canary", "goldfish", "turtle", "scorpion", "ant"
+            ],
+            miscellaneous: [
+                "umbrella", "guitar", "pencil", "mountain", "ocean", "sunflower", "computer", "notebook",
+                "coffee", "bicycle", "keyboard", "lamp", "window", "book", "clock", "television", "camera",
+                "shoe", "backpack", "flower", "rainbow", "painting", "scarf", "hat", "candle", "telephone",
+                "table", "chair", "sunglasses", "pocket", "skateboard", "kitchen", "dinner", "festival",
+                "balloon", "jacket", "basket", "calendar", "magazine", "drum", "sailboat", "whistle",
+                "map", "globe", "mirror", "robot", "star", "planet", "cloud", "beach", "fireworks",
+                "key", "wallet", "socks", "cupcake", "lighthouse", "telescope", "symphony", "harmony",
+                "adventure", "journey", "treasure", "mystery", "puzzle", "whirlwind", "chocolate",
+                "unicorn", "dragon", "fairy", "castle", "oasis", "paradise", "horizon", "echo", "dream",
+                "fantasy", "river", "valley", "forest", "desert", "island", "canyon", "waterfall",
+                "sunset", "dawn", "twilight", "moonlight", "starlight", "firefly", "kite", "ball",
+                "jigsaw", "hammock", "swing", "carousel", "fountain", "bridge", "tunnel", "road", "path",
+                "adobe", "mosaic", "tapestry", "quilt", "sculpture", "artifact", "trellis", "lantern",
+                "fossil", "gemstone", "pebble", "shell", "tide", "wave", "breeze", "drizzle", "thunder",
+                "lightning", "frost", "mist", "fog", "smoke", "ash"
+            ]
+        };
+
+        const hangmanStages = [
+            `  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`,
+            `  +---+
+  |   |
+  O   |
+ /|\\  |
+ /    |
+      |
+=========`,
+            `  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========`,
+            `  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========`,
+            `  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========`,
+            `  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========`
+        ];
+
+        const deathStage = `  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`;
+
+        const modeLogos = {
+            food: `███████╗ ██████╗  ██████╗ ██████╗
+██╔════╝██╔═══██╗██╔═══██╗██╔══██╗
+█████╗  ██║   ██║██║   ██║██║  ██║
+██╔══╝  ██║   ██║██║   ██║██║  ██║
+██║     ╚██████╔╝╚██████╔╝██████╔╝
+╚═╝      ╚═════╝  ╚═════╝ ╚═════╝`,
+            animal: `                  ;\\
+                  |' \\
+_                  ; : ;
+/ \`-.              /: : |
+|  ,-.\`-.          ,': : |
+\\  :  \`. \`.       ,'-. : |
+\\  ;    ;  \`-.__,'    \`-.|
+\\  ;   ;  :::  ,::'\':\`.  \`.
+  \\ \`-. :  \`    :.    \`.  \\
+  \\   \\    ,   ;   ,:    (\\
+    \\   :., :.    ,'o)): \` \`-.
+  ,/,' ;' ,::"'\`.\`---'   \`.  \`-._
+,/  :  ; '"      \`\`;'          ,--\`.
+;/   :; ;             ,:'     (   ,:)
+  ,.,:.    ; ,:.,  ,-.\_ \`.     \\""'/
+  '::'     \`:'\`  ,'(  \\\`._____.-'"'
+    ;,   ;  \`.  \`. \`._\`-.  \\\\
+    ;:.  ;:       \`-._\`-.\\  \\\`.
+      '\':\`. :        |' \`. \`\\  ) \\
+        \` ;:       |    \`--\\__,'
+          '\`      ,'
+                ,-'`,
+            miscellaneous: `        ________
+    _jgN########Ngg_
+  _N##N@@""  ""9NN##Np_
+d###P            N####p
+"^^"              T####
+                  d###P
+                _g####F
+            _gN###P
+          gN###F"
+          d###F
+        0###F
+        0###F
+        0###F
+        "NN@'
+
+          ___
+        q###r
+          ""`
+        };
+
+        // Game state
+        let currentMode = '';
+        let currentWord = '';
+        let guessedLetters = [];
+        let correctLetters = [];
+        let lives = 6;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame() {
+            showScreen('modeScreen');
+        }
+
+        function exitGame() {
+            document.querySelector('#welcomeScreen h2').textContent = 'Thanks for visiting! Refresh to play.';
+            document.querySelector('#welcomeScreen button').style.display = 'none';
+            document.querySelectorAll('#welcomeScreen button')[1].style.display = 'none';
+        }
+
+        function selectMode(mode) {
+            currentMode = mode;
+            const modeLogo = document.getElementById('modeLogo');
+            modeLogo.textContent = modeLogos[mode];
+
+            initializeGame();
+            showScreen('gameScreen');
+        }
+
+        function initializeGame() {
+            // Reset game state
+            lives = 6;
+            guessedLetters = [];
+            correctLetters = [];
+
+            // Select random word
+            const wordList = wordLists[currentMode];
+            currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+            // Update display
+            updateDisplay();
+            createKeyboard();
+        }
+
+        function createKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            keyboard.innerHTML = '';
+
+            const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+            alphabet.forEach(letter => {
+                const button = document.createElement('button');
+                button.className = 'key';
+                button.textContent = letter;
+                button.onclick = () => guessLetter(letter);
+                keyboard.appendChild(button);
+            });
+        }
+
+        function guessLetter(letter) {
+            if (guessedLetters.includes(letter)) {
+                return;
+            }
+
+            guessedLetters.push(letter);
+
+            // Disable the button
+            const buttons = document.querySelectorAll('.key');
+            buttons.forEach(btn => {
+                if (btn.textContent === letter) {
+                    btn.disabled = true;
+                }
+            });
+
+            // Check if letter is in word
+            if (currentWord.includes(letter)) {
+                // Add to correct letters
+                for (let char of currentWord) {
+                    if (char === letter && !correctLetters.includes(letter)) {
+                        correctLetters.push(letter);
+                    }
+                }
+            } else {
+                lives--;
+            }
+
+            updateDisplay();
+            checkGameOver();
+        }
+
+        function updateDisplay() {
+            // Update lives counter
+            document.getElementById('livesCounter').textContent =
+                `****************************${lives}/6 LIVES LEFT****************************`;
+
+            // Update hangman display
+            document.getElementById('hangmanDisplay').textContent = hangmanStages[lives];
+
+            // Update word display
+            let display = '';
+            for (let char of currentWord) {
+                if (correctLetters.includes(char)) {
+                    display += char + ' ';
+                } else {
+                    display += '_ ';
+                }
+            }
+            document.getElementById('wordDisplay').textContent = display.trim();
+
+            // Update guessed letters
+            document.getElementById('guessedLetters').textContent =
+                `You already used these letters: ${guessedLetters.join(', ')}`;
+        }
+
+        function checkGameOver() {
+            // Check if won
+            let won = true;
+            for (let char of currentWord) {
+                if (!correctLetters.includes(char)) {
+                    won = false;
+                    break;
+                }
+            }
+
+            if (won) {
+                showGameOverModal(true);
+            } else if (lives === 0) {
+                showGameOverModal(false);
+            }
+        }
+
+        function showGameOverModal(won) {
+            const modal = document.getElementById('gameModal');
+            const title = document.getElementById('modalTitle');
+            const message = document.getElementById('modalMessage');
+            const art = document.getElementById('modalArt');
+
+            if (won) {
+                title.textContent = '🎉 YOU WIN! 🎉';
+                message.textContent = `Congratulations! The word was "${currentWord}"`;
+                art.textContent = '';
+            } else {
+                title.textContent = '💀 GAME OVER 💀';
+                message.textContent = `The word was "${currentWord}"`;
+                art.textContent = deathStage;
+            }
+
+            modal.classList.add('active');
+        }
+
+        function playAgain() {
+            document.getElementById('gameModal').classList.remove('active');
+            initializeGame();
+        }
+    </script>
+</body>
+</html>
